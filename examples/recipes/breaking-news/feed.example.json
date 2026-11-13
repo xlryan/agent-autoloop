@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "id": "fed-2026-11-13",
+      "title": "示例：央行意外调整政策利率",
+      "summary": "这是虚构的标题，用来说明字段。只有 importance 为 major 的才会送进中台。",
+      "link": "https://example.com/news/fed-2026-11-13",
+      "importance": "major"
+    },
+    {
+      "id": "celebrity-2026-11-13",
+      "title": "示例：一条和行情无关的消息",
+      "summary": "importance 不是 major，采集脚本会丢掉。",
+      "importance": "minor"
+    }
+  ]
+}
