@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>中台 · 本机可视化</title>
+    <style nonce="__NONCE__">
+      __CSS__
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside>
+        <div class="brand">
+          <span class="mark" aria-hidden="true"></span>
+          <div>
+            <strong>Agent Autoloop</strong>
+            <small>本机可视化</small>
+          </div>
+        </div>
+        <nav>
+          <button type="button" data-tab="overview" class="on">总览</button>
+          <button type="button" data-tab="events">事件</button>
+          <button type="button" data-tab="cards">待决定</button>
+          <button type="button" data-tab="rules">规则</button>
+          <button type="button" data-tab="logs">日志</button>
+        </nav>
+        <p class="aside-note">xlryan 的分支，基于 KKKKhazix/agent-autoloop。页面只读本机中台，不显示密钥。</p>
+      </aside>
+      <main>
+        <header>
+          <div>
+            <p class="kicker" id="kicker">总览</p>
+            <h1 id="heading">现在什么情况</h1>
+          </div>
+          <p class="live" id="live">正在连接</p>
+        </header>
+        <section id="panel"></section>
+      </main>
+    </div>
+    <script nonce="__NONCE__">
+      __JS__
+    </script>
+  </body>
+</html>
