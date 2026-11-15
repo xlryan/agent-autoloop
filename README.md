@@ -1,5 +1,7 @@
 # Agent Autoloop
 
+> **分支说明：** 这是 [@xlryan](https://github.com/xlryan) 维护的分支，在 [KKKKhazix/agent-autoloop](https://github.com/KKKKhazix/agent-autoloop) 原有框架之上增加了本机 Web 可视化（`agent-autoloop web`）。内核协议、零依赖和插件边界仍以原项目为准。
+
 **让你的命令行 Agent 在后台自己接活、自己跟进到底；平时不烦你，遇到拿不准的事才发卡片找你拍板。**
 
 **中文** | [English](README.en.md)
@@ -16,7 +18,7 @@
 
 - **一台电脑、一条命令就能跑。** 装在你的 Windows、Mac 或 Linux 上，不用买云服务器，也不用开放公网端口。
 - **一行配置接新 Agent。** 不需要 SDK，也不需要改 Agent 源码，能接收提示词并打印最后一条回复的命令行工具都能接。
-- **没有后台界面。** 需要你拍板时把卡片推到飞书、钉钉、企微、Slack、Discord 或桌面通知；想看全局进展，敲一行命令。
+- **内核没有界面。** 需要你拍板时把卡片推到飞书、钉钉、企微、Slack、Discord 或桌面通知。本分支另加了一个只在本机打开的页面，用来看全局、回答卡片。
 
 ## 上手
 
@@ -58,6 +60,23 @@ Agent 结束了这一轮，问了你一个问题。它现在不占进程、不�
 ```
 
 交互终端里直接输入数字回车；非交互终端运行 `agent-autoloop answer 1 2` 选择“绿色”。再跑 `agent-autoloop status`，就能看到它接上刚才的会话并显示“你选了绿色，试跑通过”，还有今天和最近 7 天的轮数、Token 和费用（[统计口径](skills/agent-autoloop/SKILL.md#看情况回答)）。
+
+## 本机可视化
+
+中台跑起来之后，在这台电脑上打开页面：
+
+```bash
+agent-autoloop web
+```
+
+浏览器访问 <http://127.0.0.1:7788>。页面每 3 秒向本机中台拉一次状态，内容和 `agent-autoloop status` 读的是同一份；在页面上回答卡片，走的是和 `agent-autoloop answer` 相同的请求。
+
+- `--port` 默认 `7788`，`--host` 默认 `127.0.0.1`。
+- 只监听本机时不用令牌。`--host` 设成 `0.0.0.0` 或其他非本机地址时必须带令牌：`--token`，或环境变量 `AGENT_AUTOLOOP_WEB_TOKEN`。两个都没写，启动时会生成一把，只打印一次。
+- 令牌放在请求头 `Authorization: Bearer <令牌>`，或第一次打开时写在地址后面的 `?token=`。
+- 规则、通道配置和日志里的密钥、令牌、Webhook 地址不会出现在页面和接口里。
+
+![本机可视化：总览](docs/web-dashboard.png)
 
 ## 一件事怎么转起来
 
@@ -138,6 +157,8 @@ Agent 结束了这一轮，问了你一个问题。它现在不占进程、不�
 | [网站巡检](examples/recipes/website-watch/README.md) | 每 5 分钟检查状态和关键内容，首次异常交给 Agent，持续异常不重复通知，恢复后更新原卡片 |
 | [飞书周报与业务摘要](examples/recipes/feishu-brief/README.md) | 周日 18 点按你的权限读汇报和指定表格，生成本地摘要；飞书只发简短摘要，完整稿留在本机 |
 | [收件箱分诊](examples/recipes/inbox-triage/README.md) | 默认每天 8 点读过去 24 小时的未读邮件，写成清单和回复草稿；不发送、不改邮箱状态 |
+| [重大新闻提醒](examples/recipes/breaking-news/README.md) | 每 15 分钟看新闻源，同一条只记一次，只有会动市场的才通知 |
+| [OKX 模拟盘巡检](examples/recipes/okx-demo-patrol/README.md) | 每小时读本地模拟盘的心跳和策略说明；只报状态和异常，不碰真实资金，改参数或代码要等你在卡片上同意 |
 | [PR 自动交付](skills/agent-autoloop/SKILL.md#交付流水线) | 打上 `deliver` 标签后，审查、等 CI、合并、等发布并核对线上版本 |
 
 **启用：** 打开对应说明。模板带任务 Skill 时，把它放进所用 Agent 的 skills 目录。把示例规则合入 `~/.agent-autoloop/rules.json`，替换电脑名和路径，再运行 `agent-autoloop check`。
@@ -252,7 +273,8 @@ Apple M5 Pro、24 GB、Node 24.21.0。写入逐条提交，事务落盘后才应
 | `host/` | 运行外壳：Node HTTP、文件与 SQLite 连接、时钟、配置、状态汇总、后台服务和插件加载 |
 | `protocol/` | 通信格式、JSON Schema、输入校验、HTTP 客户端和一致性检查 |
 | `worker/` | 接单程序：领活、运行 Agent、心跳与停止、读取和提交回执 |
-| `cli/`、`bin/` | 用户命令及启动入口，包括状态、回答、`why`、MCP、更新与卸载 |
+| `cli/`、`bin/` | 用户命令及启动入口，包括状态、回答、`why`、本机可视化、MCP、更新与卸载 |
+| `cli/dashboard/` | 本机可视化页面。它是本人接口的客户端，不进内核 |
 | `plugins/` | 内置 Agent、事件、通道和交付插件 |
 | `examples/recipes/` | 完整场景：规则、任务 Skill 和启用说明 |
 | `examples/plugins/`、`examples/skills/`、`examples/*.sh` | 最小插件模板、独立任务手册和 Shell 示例 |

@@ -136,6 +136,7 @@ const EVERY_OTHER_COMMAND = [
   "tell",
   "try",
   "up",
+  "web",
   "why",
 ];
 

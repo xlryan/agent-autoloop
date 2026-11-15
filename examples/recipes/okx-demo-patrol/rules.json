@@ -1,0 +1,56 @@
+{
+  "timezone": "Asia/Shanghai",
+  "askFirst": ["删数据", "停服", "花钱", "对外发消息", "改交易参数", "改代码", "使用真实资金"],
+  "sources": {
+    "okx-demo": {
+      "name": "OKX 模拟盘"
+    }
+  },
+  "agents": {
+    "okx-patrol": {
+      "name": "模拟盘巡检",
+      "worker": "my-computer",
+      "use": "command",
+      "command": ["node", "{cwd}/patrol.ts"]
+    },
+    "okx-agent": {
+      "name": "模拟盘核对",
+      "worker": "my-computer",
+      "use": "codex",
+      "access": "read"
+    }
+  },
+  "rules": [
+    {
+      "name": "巡检 OKX 模拟盘",
+      "when": {
+        "cron": "0 * * * *"
+      },
+      "to": "okx-patrol",
+      "cwd": "~/.agent-autoloop/work/okx-demo-patrol",
+      "group": "okx-demo",
+      "tell": "needed",
+      "emits": {
+        "source": "okx-demo",
+        "types": ["okx.demo.anomaly"]
+      }
+    },
+    {
+      "name": "核对模拟盘异常",
+      "when": {
+        "source": "okx-demo",
+        "types": ["okx.demo.anomaly"]
+      },
+      "to": "okx-agent",
+      "cwd": "~/code/okx-demo-trader",
+      "skill": "okx-demo-patrol",
+      "group": "okx-demo",
+      "tell": "needed"
+    }
+  ],
+  "channels": {
+    "desktop": {
+      "name": "桌面通知"
+    }
+  }
+}

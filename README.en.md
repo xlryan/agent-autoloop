@@ -1,5 +1,7 @@
 # Agent Autoloop
 
+> **Fork note:** This is [@xlryan](https://github.com/xlryan)'s fork. It adds a local web dashboard (`agent-autoloop web`) on top of the original framework by [KKKKhazix/agent-autoloop](https://github.com/KKKKhazix/agent-autoloop). The kernel protocol, zero runtime dependencies, and plugin boundaries stay those of the original project.
+
 **Let your command-line agents pick up work and follow it through in the background — staying quiet when they can handle it, and sending you a card only when a decision is yours to make.**
 
 [中文](README.md) | **English**
@@ -16,7 +18,7 @@ Most of us use command-line agents like Claude Code or Codex by babysitting a te
 
 - **One machine, one install command.** Runs on Windows, macOS, or Linux. No cloud server or inbound ports required.
 - **Connect a new agent in one line.** No SDK, no agent source code to fork. Any CLI tool that takes a prompt and prints a final reply can plug in.
-- **No web dashboard.** Cards reach you on Feishu, DingTalk, WeCom, Slack, Discord, or desktop notifications when you are needed. Everything else is one command away.
+- **The kernel has no interface.** Cards still reach you on Feishu, DingTalk, WeCom, Slack, Discord, or desktop notifications. This fork also serves a page on your own machine for an overview and for answering cards.
 
 ## Get started
 
@@ -60,6 +62,23 @@ After you answer, run agent-autoloop status to see it pick the work back up and 
 ```
 
 In an interactive terminal, just type the option number. In a non-interactive terminal, run `agent-autoloop answer 1 2` to pick green. Then `agent-autoloop status` shows that the agent resumed its conversation and finished, along with rounds, tokens, and cost for today and the past seven days ([how they are counted](skills/agent-autoloop/SKILL.md#看情况回答)).
+
+## Local dashboard
+
+With the hub already running on this machine:
+
+```bash
+agent-autoloop web
+```
+
+Open <http://127.0.0.1:7788>. The page polls every 3 seconds and shows the same state as `agent-autoloop status`. Answering a card uses the same request as `agent-autoloop answer`. The interface text is Chinese.
+
+- `--port` defaults to `7788`, `--host` to `127.0.0.1`.
+- A loopback bind needs no token. Any other host requires one: pass `--token`, or set `AGENT_AUTOLOOP_WEB_TOKEN`. If neither is set, a token is generated and printed once at startup.
+- Send it as `Authorization: Bearer <token>`, or as `?token=` on the first page load.
+- Keys, tokens, and webhook URLs are removed from the page and from the API.
+
+![Local dashboard overview](docs/web-dashboard.png)
 
 ## How a piece of work flows
 
@@ -140,6 +159,8 @@ Each recipe includes sample rules and setup instructions (written in Chinese).
 | [Website watch](examples/recipes/website-watch/README.md) | Check status and expected content every five minutes; wake the agent on a new incident, keep ongoing failures quiet, and update the card on recovery |
 | [Feishu weekly and business brief](examples/recipes/feishu-brief/README.md) | Read selected reports and tables with your permissions at 6 PM Sunday; summarize locally and send only a short summary to Feishu |
 | [Inbox triage](examples/recipes/inbox-triage/README.md) | Read unread mail from the last 24 hours at 8 AM by default; write a local checklist with reply drafts, without sending or changing the mailbox |
+| [Breaking-news alert](examples/recipes/breaking-news/README.md) | Every 15 minutes; each item id is recorded once; only market-moving items notify you |
+| [OKX demo-trading patrol](examples/recipes/okx-demo-patrol/README.md) | Hourly read of a local demo checkout's heartbeat and strategy note; status and anomalies only, never real money, and no parameter or code change without a decision card you accept |
 | [PR delivery](skills/agent-autoloop/SKILL.md#交付流水线) | Add `deliver` to a PR to review it, wait for CI, merge, wait for deployment, and verify the live version |
 
 **To enable one:** open its instructions. If the recipe includes a task Skill, put it in your agent's skills directory. Merge the sample rules into `~/.agent-autoloop/rules.json`, replace worker names and paths, then run `agent-autoloop check`.
@@ -254,7 +275,8 @@ For automated workloads, providers generally recommend using API keys rather tha
 | `host/` | Node HTTP, files and SQLite connections, clock, configuration, status summary, background services, and plugin loading |
 | `protocol/` | Wire formats, JSON Schema, input validation, HTTP client, and conformance checks |
 | `worker/` | Claim work, run agents, handle heartbeats and cancellation, read and submit receipts |
-| `cli/`, `bin/` | User commands and entry point: status, answers, `why`, MCP, updates, and uninstall |
+| `cli/`, `bin/` | User commands and entry point: status, answers, `why`, the local dashboard, MCP, updates, and uninstall |
+| `cli/dashboard/` | The local dashboard. A client of the owner API, not part of the kernel |
 | `plugins/` | Built-in agent, event, channel, and delivery plugins |
 | `examples/recipes/` | Complete recipes with rules, a task Skill, and setup instructions |
 | `examples/plugins/`, `examples/skills/`, `examples/*.sh` | Minimal plugin templates, standalone task guides, and Shell examples |

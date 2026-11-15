@@ -1,0 +1,55 @@
+{
+  "timezone": "Asia/Shanghai",
+  "askFirst": ["删数据", "停服", "花钱", "对外发消息", "下单", "改交易参数"],
+  "sources": {
+    "breaking-news": {
+      "name": "重大新闻"
+    }
+  },
+  "agents": {
+    "news-watch": {
+      "name": "新闻采集",
+      "worker": "my-computer",
+      "use": "command",
+      "command": ["node", "{cwd}/collect.ts"]
+    },
+    "news-agent": {
+      "name": "新闻简报",
+      "worker": "my-computer",
+      "use": "codex",
+      "access": "read"
+    }
+  },
+  "rules": [
+    {
+      "name": "看重大新闻",
+      "when": {
+        "cron": "*/15 * * * *"
+      },
+      "to": "news-watch",
+      "cwd": "~/.agent-autoloop/work/breaking-news",
+      "tell": "never",
+      "emits": {
+        "source": "breaking-news",
+        "types": ["news.major"]
+      }
+    },
+    {
+      "name": "通知重大新闻",
+      "when": {
+        "source": "breaking-news",
+        "types": ["news.major"]
+      },
+      "to": "news-agent",
+      "cwd": "~/.agent-autoloop/work/breaking-news",
+      "skill": "breaking-news",
+      "parallel": 3,
+      "tell": "needed"
+    }
+  ],
+  "channels": {
+    "desktop": {
+      "name": "桌面通知"
+    }
+  }
+}

@@ -24,6 +24,7 @@ import {
   untilAnswering,
 } from "../host/service.ts";
 import { versionLine } from "../host/version.ts";
+import { answerCard, answerWords } from "./answer.ts";
 import { clockFor, colorFor, render, replayCommand, skippedLine } from "./status.ts";
 import { attemptsOf, newFailure, waitingRetry } from "./try.ts";
 
@@ -40,6 +41,8 @@ const HELP = `Agent 自动化中台
                                     在测试中台上检查协议
   agent-autoloop status [--json]         现在什么情况：谁在线、等你什么、在做什么、做过什么、花了多少
                                      --json 输出 /v1/state 的原始结构，给脚本用
+  agent-autoloop web [--port 7788] [--host 127.0.0.1] [--token 令牌]
+                                    在本机打开可视化页面
   agent-autoloop runs [规则] [--before <第几轮>] [--json]
                                     列出做完的轮次，可以只看一条规则、往前翻；细节再用 why
   agent-autoloop answer <卡片> [序号] [--text 别的想法]
@@ -93,6 +96,12 @@ const INIT_USAGE = `用法：agent-autoloop init [--agent claude|codex] [--comma
 const TRY_USAGE = `用法：agent-autoloop try
 
 用本机接好的 Agent 跑一遍完整流程：提问，进程退出等你回复，你拍板，它接着干完。`;
+
+const WEB_USAGE = `用法：agent-autoloop web [--port 7788] [--host 127.0.0.1] [--token 令牌]
+
+在本机打开可视化页面：总览、事件、待决定、规则和日志。默认只监听 127.0.0.1，不需要令牌。
+监听非本机地址时必须带令牌：用 --token，或环境变量 AGENT_AUTOLOOP_WEB_TOKEN；都没写就生成一把，只在启动时打印一次。
+请求放在 Authorization: Bearer <令牌>，或查询参数 token=。页面和接口不显示密钥、令牌和 Webhook 地址。`;
 
 const STATUS_USAGE = `用法：agent-autoloop status [--json]
 
@@ -174,6 +183,7 @@ rules.json 里这个定时任务要写 cwd；你答了，中台叫醒它的 Agen
   up: { flags: [], usage: "用法：agent-autoloop up" },
   update: { flags: [], usage: UPDATE_USAGE },
   why: { flags: ["json"], usage: "用法：agent-autoloop why <第几轮> [--json]" },
+  web: { flags: ["port", "host", "token"], usage: WEB_USAGE },
 };
 
 type Flags = Record<string, string | true>;
@@ -501,18 +511,31 @@ async function answer(args: string[]) {
   const { named, rest } = flags(args);
   const card = Number(rest[0]);
   if (!Number.isInteger(card) || card < 1) return fail(TAKES.answer.usage);
-  const words = text(named.text);
-  const done = await ownerClient().answer(card, {
-    ...(rest[1] !== undefined && { choice: Number(rest[1]) - 1 }),
-    ...(words && { text: words }),
-  });
-  console.log(
-    !done.changed
-      ? "这张卡片已经处理过了，这次没有改动。"
-      : done.state === "closed"
-        ? "结案了。"
-        : "收到，Agent 接着干。",
-  );
+  const choice = rest[1] !== undefined ? Number(rest[1]) - 1 : undefined;
+  const done = await answerCard(ownerClient(), card, { choice, text: text(named.text) });
+  console.log(answerWords(done));
+}
+
+async function web(args: string[]) {
+  const { named } = flags(args);
+  if (named.port === true || (named.port !== undefined && !/^\d+$/.test(named.port))) return fail(WEB_USAGE);
+  if (named.host === true || named.token === true) return fail(WEB_USAGE);
+  const port = named.port === undefined ? 7788 : Number(named.port);
+  const host = text(named.host) ?? "127.0.0.1";
+  const { startDashboard } = await import("./dashboard/server.ts");
+  const started = await startDashboard({ host, port, token: text(named.token) });
+  console.log(`可视化已打开：${started.url}`);
+  if (started.generated)
+    console.log(
+      `这把令牌只显示一次：${started.token}\n请求带上 Authorization: Bearer，或第一次打开时在地址后加 ?token=`,
+    );
+  else if (started.token) console.log("已启用令牌。请求要带 Authorization: Bearer，或查询参数 token。");
+  const stop = () => {
+    void started.close().finally(() => process.exit(0));
+  };
+  process.on("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  await new Promise(() => {});
 }
 
 async function resolve(args: string[]) {
@@ -910,6 +933,7 @@ const commands: Record<string, () => unknown> = {
   up: async () => (await import("../host/up.ts")).up(),
   try: () => tryIt(),
   status: () => status(flags(args).named),
+  web: () => web(args),
   why: () => why(args),
   runs: () => runs(args),
   conformance: () => checkConformance(args),
